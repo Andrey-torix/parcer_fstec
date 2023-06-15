@@ -33,16 +33,16 @@ date = datetime.date.today()
 nlp = spacy.load("en_core_web_sm")
 
 def connect_rabbitmq():
+    credentials = pika.PlainCredentials('guest', 'guest')
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST, credentials=credentials))
         channel = connection.channel()
         channel.queue_declare(queue=RABBITMQ_QUEUE_TASKS)
-        channel.queue_declare(queue=RABBITMQ_QUEUE_RESULTS, auto_delete=True)
+        channel.queue_declare(queue=RABBITMQ_QUEUE_RESULTS, auto_delete=False)
         return connection, channel
     except Exception as e:
         logging.error(f"Failed to connect to RabbitMQ: {e}")
         raise e
-
 
 def connect_elasticsearch(ELASTICSEARCH_HOST):
     try:
