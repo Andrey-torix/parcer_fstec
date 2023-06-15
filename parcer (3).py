@@ -20,7 +20,7 @@ RABBITMQ_QUEUE_RESULTS = 'results'
 
 ELASTICSEARCH_INDEX = 'my_index'
 ELASTICSEARCH_DOC_TYPE = 'my_doc_type'
-ELASTICSEARCH_HOST = 'localhost'
+ELASTICSEARCH_HOST = "http://localhost:9200"
 
 headers = {
     "User-Agent": UserAgent().random
@@ -44,7 +44,7 @@ def connect_rabbitmq():
         raise e
 
 
-def connect_elasticsearch():
+def connect_elasticsearch(ELASTICSEARCH_HOST):
     try:
         es = Elasticsearch([ELASTICSEARCH_HOST])
         return es
@@ -169,7 +169,7 @@ def consume_results(rabbitmq_channel, es):
 def main():
     try:
         rabbitmq_connection, rabbitmq_channel = connect_rabbitmq()
-        es = connect_elasticsearch()
+        es = connect_elasticsearch(ELASTICSEARCH_HOST)
         parse_site(rabbitmq_channel, es)
         consume_results(rabbitmq_channel, es)
     finally:
