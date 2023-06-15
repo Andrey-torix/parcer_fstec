@@ -46,7 +46,7 @@ def connect_rabbitmq():
 
 def connect_elasticsearch(ELASTICSEARCH_HOST):
     try:
-        es = Elasticsearch([ELASTICSEARCH_HOST])
+        es = Elasticsearch([ELASTICSEARCH_HOST], basic_auth=("elastic", "nuMZ7JRTtJpQYSORhI=n"))
         return es
     except Exception as e:
         logging.error(f"Failed to connect to Elasticsearch: {e}")
@@ -68,10 +68,11 @@ def find_duplicate_texts(es, text):
     lsh = MinHashLSH(threshold=0.5, num_perm=128)
     duplicates = []
     for doc in es.search(index=ELASTICSEARCH_INDEX, body={"query": {"match_all": {}}})['hits']['hits']:
-        doc_text = doc['_source']['info_threats']
-        doc_minhash = compute_minhash(doc_text)
-        if minhash.jaccard(doc_minhash) >= 0.5:
-            duplicates.append(doc_text)
+        if '_source' in doc and 'info_threats' in doc['_source']:
+            doc_text = doc['_source']['info_threats']
+            doc_minhash = compute_minhash(doc_text)
+            if minhash.jaccard(doc_minhash) >= 0.5:
+                duplicates.append(doc_text)
     return duplicates
 
 def cluster_texts(texts):
@@ -167,16 +168,11 @@ def consume_results(rabbitmq_channel, es):
     rabbitmq_channel.start_consuming()
 
 def main():
-    try:
-        rabbitmq_connection, rabbitmq_channel = connect_rabbitmq()
-        es = connect_elasticsearch(ELASTICSEARCH_HOST)
-        parse_site(rabbitmq_channel, es)
-        consume_results(rabbitmq_channel, es)
-    finally:
-        try:
-            rabbitmq_connection.close()
-        except:
-            pass
+    connection, channel = connect_rabbitmq()
+    es = connect_elasticsearch(ELASTICSEARCH_HOST)
+    parse_site(channel, es)
+    consume_results(channel, es)
+    connection.close()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
